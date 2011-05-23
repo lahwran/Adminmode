@@ -1,0 +1,7 @@
+name: AdminMode
+main: net.lahwran.bukkit.adminmode.Main
+version: 0.1
+commands:
+    setgroup:
+        description: stuff here
+        usage: more stuff here

@@ -12,7 +12,7 @@ public class Main extends JavaPlugin {
 	public Control control;
 	
 	public void onEnable() {
-        getCommand("setgroup").setExecutor(listener);
+        getCommand("mode").setExecutor(listener);
 
         this.control = (Control)((Permissions) this.getServer().getPluginManager().getPlugin("Permissions")).getHandler();
 

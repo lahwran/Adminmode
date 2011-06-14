@@ -1,5 +1,7 @@
 package net.lahwran.bukkit.adminmode;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Map;
 
 import org.bukkit.command.Command;
@@ -28,113 +30,137 @@ public class Listener implements CommandExecutor
             sender.sendMessage("You're not a player");
             return true;
         }
-        String from;
-        String message;
-        String to;
-        boolean cur = false;
-        if (args.length != 1)
+        Player player = (Player)sender;
+        String playername = player.getName();
+        
+        
+        
+        boolean currentlyadmin = false;
+
+        String newname;
+        if (playername.startsWith("\u00a74"))
         {
-            sender.sendMessage("usage: /mode <play|admin|cur>");
+            currentlyadmin=true;
+            newname = playername.substring(2);
+        }
+        else
+        {
+            currentlyadmin=false;
+            newname = "\u00a74" + playername;
+        }
+        
+
+        if (! plugin.control.has(player, String.format("adminmode.%s", (!currentlyadmin ? "admin" : "play"))))
+        {
+            sender.sendMessage(String.format("you don't have permission to enter %s mode.",(!currentlyadmin ? "admin" : "play")));
+            return true;
+        }
+        
+        String message = null;
+        if (args.length != 1 || args[0].equals("help"))
+        {
+            sender.sendMessage("usage: /mode <play|admin|cur|help>");
             return true;
         }
         if(args[0].equals("play"))
         {
-            from="admin";
-            to="play";
+            if(!currentlyadmin)
+            {
+                player.sendMessage("-- you are in play mode.");
+                return true;
+            }
             message="\u00a7e * %s has entered play mode";
         }
         else if (args[0].equals("admin"))
         {
-            from="play";
-            to="admin";
+            if(currentlyadmin)
+            {
+                player.sendMessage("-- you are in admin mode.");
+                return true;
+            }
             message="\u00a7e * %s has entered admin mode";
         }
         else if(args[0].equals("cur"))
         {
-            message = to = from = null;
-            cur = true;
+            player.sendMessage(String.format("-- you are in %s mode",(currentlyadmin ? "admin" : "play")));
+            return true;
         }
-        else return true;
-        Control control = this.plugin.control;
-        synchronized(control)
+        else
         {
-            do {
-                Player player = (Player)sender;
-                String playername = player.getName();
-                String world = player.getWorld().getName();
-                
-                Field field_WorldCache = null;
-                Field field_WorldUserGroups = null;
-                Map<String, Map<String, Boolean>> WorldCache = null;
-                Map<String, Map<String, String>> WorldUserGroups = null;
-                try
-                {
-                    field_WorldCache = Control.class.getDeclaredField("WorldCache");
-                    field_WorldCache.setAccessible(true);
-                    
-                    field_WorldUserGroups = Control.class.getDeclaredField("WorldUserGroups");
-                    field_WorldUserGroups.setAccessible(true);
-                    
-                
-                    WorldCache = (Map<String, Map<String, Boolean>>)field_WorldCache.get(control);
-                    WorldUserGroups = (Map<String, Map<String, String>>)field_WorldUserGroups.get(control);
-                }
-                catch (Throwable t)
-                {
-                    t.printStackTrace();
-                }
-                Map<String, Boolean> cache = null;
-                Map<String, String> worldgroups = null;
-                //synchronized(WorldCache)
-                //{
-                    cache = WorldCache.get(world);
-                //}
-                //synchronized(WorldUserGroups)
-                //{
-                    worldgroups = WorldUserGroups.get(world);
-                //}
-                
-                //synchronized(cache)
-                //{
-                    for(String key:cache.keySet())
-                    {
-                        if (key.startsWith(playername+",")) 
-                        {
-                            cache.remove(key);
-                        } 
-                    }
-                //}
-                String prevGroup = worldgroups.get(playername);
-                if (cur)
-                {
-                    String m;
-                    if(prevGroup.endsWith("-admin"))
-                        m="admin";
-                    else if (prevGroup.endsWith("-play"))
-                        m="play";
-                    else
-                    {
-                        player.sendMessage("you are not admin.");
-                        break;
-                    }
-                    player.sendMessage("you are in "+m+" mode.");
-                    break;
-                }
-                String newGroup;
-                if(prevGroup.endsWith("-"+from))
-                {
-                    newGroup = prevGroup.replace("-"+from, "-"+to);
-                }
-                else 
-                {
-                    player.sendMessage("-- available modes are 'admin' and 'play'.");
-                    break;
-                }
-                player.getServer().broadcastMessage(String.format(message, player.getDisplayName()));
-                worldgroups.put(playername, newGroup);
-                
-            }while(false);
+            
+            player.sendMessage("-- available modes are admin and play. see /mode help.");
+            return true;
         }
+
+
+        plugin.hide(player);
+        plugin.spyrename(player, newname);
+        try
+        {
+            Class CraftPlayer = Class.forName("org.bukkit.craftbukkit.entity.CraftPlayer");
+            Class EntityHuman = Class.forName("net.minecraft.server.EntityHuman");
+            Method getHandle = CraftPlayer.getMethod("getHandle");
+            Object entityplayer = getHandle.invoke(player);
+            Field name = EntityHuman.getField("name");
+            
+            name.setAccessible(true);
+            name.set(entityplayer, newname);
+            
+            currentlyadmin = !currentlyadmin;
+        }
+        catch (ClassNotFoundException e)
+        {
+            sender.sendMessage("-- you don't seem to be on craftbukkit. This plugin cheats, so it only works on craftbukkit.");
+            e.printStackTrace();
+            return true;
+        }
+        catch (SecurityException e)
+        {
+            sender.sendMessage("-- the plugin doesn't seem to be allowed to do that.");
+            e.printStackTrace();
+            return true;
+        }
+        catch (NoSuchMethodException e)
+        {
+            sender.sendMessage("-- craftplayer is insane");
+            e.printStackTrace();
+            return true;
+        }
+        catch (IllegalArgumentException e)
+        {
+            sender.sendMessage("-- craftplayer is insane");
+            e.printStackTrace();
+            return true;
+        }
+        catch (IllegalAccessException e)
+        {
+            sender.sendMessage("-- craftplayer is insane");
+            e.printStackTrace();
+            return true;
+        }
+        catch (InvocationTargetException e)
+        {
+            sender.sendMessage("-- craftplayer is insane");
+            e.printStackTrace();
+            return true;
+        }
+        catch (NoSuchFieldException e)
+        {
+            sender.sendMessage("-- EntityHuman is insane");
+            e.printStackTrace();
+            return true;
+        }
+        try
+        {
+            Thread.sleep(250);
+        }
+        catch (InterruptedException e)
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        if (!currentlyadmin) plugin.show(player);
+        player.getServer().broadcastMessage(String.format(message, player.getDisplayName()));
         return true;
     }
 }

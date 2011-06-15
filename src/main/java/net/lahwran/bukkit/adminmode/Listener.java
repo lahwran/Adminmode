@@ -69,7 +69,7 @@ public class Listener implements CommandExecutor
                 player.sendMessage("-- you are in play mode.");
                 return true;
             }
-            message="\u00a7e * %s has entered play mode";
+            message="\u00a7e %s has entered play mode";
         }
         else if (args[0].equals("admin"))
         {
@@ -78,7 +78,7 @@ public class Listener implements CommandExecutor
                 player.sendMessage("-- you are in admin mode.");
                 return true;
             }
-            message="\u00a7e * %s has entered admin mode";
+            message="\u00a7e %s has entered admin mode";
         }
         else if(args[0].equals("cur"))
         {
@@ -95,6 +95,10 @@ public class Listener implements CommandExecutor
 
         plugin.hide(player);
         plugin.spyrename(player, newname);
+        if(currentlyadmin)
+        {
+            plugin.ungod(player);
+        }
         try
         {
             Class CraftPlayer = Class.forName("org.bukkit.craftbukkit.entity.CraftPlayer");
@@ -159,7 +163,17 @@ public class Listener implements CommandExecutor
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        if (!currentlyadmin) plugin.show(player);
+        if (!currentlyadmin)
+        {
+            plugin.show(player);
+            player.sendRawMessage("§5§6§4§5s|cuboid"); //clear wecui lines whether worldedit likes it or not
+        }
+        else
+        {
+            player.chat("/worldedit cui"); //if they're not using wecui, fuck them
+            plugin.god(player);
+            player.sendMessage("-- Your inventory will be cleared when you return to play mode.");
+        }
         player.getServer().broadcastMessage(String.format(message, player.getDisplayName()));
         return true;
     }

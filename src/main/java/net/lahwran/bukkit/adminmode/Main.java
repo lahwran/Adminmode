@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Timer;
 
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -31,6 +32,11 @@ public class Main extends JavaPlugin {
     public HashMap<String, Integer> schedulers;
     public HashSet<String> commonPlayers;
     public HashMap<String, ArrayList<String>> playerHideTree;
+
+    public Plugin worldguard;
+    public Object worldguard_config;
+    public Method worldguard_enableGodMode;
+    public Method worldguard_disableGodMode;
     
     public void onEnable() {
         getCommand("mode").setExecutor(listener);
@@ -52,8 +58,6 @@ public class Main extends JavaPlugin {
                 t.printStackTrace();
                 System.err.println("SpyerAdmin not found, not good!");
                 spyer = null;
-                reappear=null;
-                vanish=null;
                 return false;
             }
         }
@@ -195,6 +199,87 @@ public class Main extends JavaPlugin {
         catch (Throwable e) {
             p.sendMessage("-- SpyerAdmin failed to rename you. This is very bad.");
             e.printStackTrace();
+        }
+    }
+
+    public void god(Player player) {
+        if (!isWorldGuardReady())
+        {
+        //ConfigurationManager config = plugin.getGlobalStateManager();
+        //} catch(Throwable t) {
+            player.sendMessage("-- Failed to tell worldedit to god you! check console.");
+            return;
+        }
+        try
+        {
+            worldguard_enableGodMode.invoke(worldguard_config, player);
+            player.setFireTicks(0);
+            player.sendMessage(ChatColor.YELLOW + "God mode enabled! Use /ungod to disable.");
+        }
+        catch (Throwable e)
+        {
+            player.sendMessage("-- Failed to tell worldedit to god you! check console.");
+            e.printStackTrace();
+        }
+    }
+    
+    public void ungod(Player player) {
+        if (!isWorldGuardReady())
+        {
+        //ConfigurationManager config = plugin.getGlobalStateManager();
+        //} catch(Throwable t) {
+            player.sendMessage("-- Failed to tell worldedit to ungod you! check console.");
+            return;
+        }
+        try
+        {
+            worldguard_disableGodMode.invoke(worldguard_config, player);
+            player.sendMessage(ChatColor.YELLOW + "God mode disabled!");
+        }
+        catch (Throwable e)
+        {
+            player.sendMessage("-- Failed to tell worldedit to ungod you! check console.");
+            e.printStackTrace();
+        }
+    }
+    /**
+     * @return
+     */
+    private boolean isWorldGuardReady()
+    {
+        if(worldguard == null)
+        {
+            try{
+                worldguard = this.getServer().getPluginManager().getPlugin("WorldGuard");
+                
+            } catch (Throwable t) {
+                t.printStackTrace();
+                System.err.println("WorldGuard not found, not good!");
+                worldguard = null;
+                return false;
+            }
+        }
+        if(this.worldguard_config != null && this.worldguard_enableGodMode != null
+                && this.worldguard_disableGodMode != null) return true;
+        
+        try{
+            Class WorldGuardPlugin = Class.forName("com.sk89q.worldguard.bukkit.WorldGuardPlugin");
+            Class WorldGuardConfig = Class.forName("com.sk89q.worldguard.bukkit.ConfigurationManager");
+            
+            Method getGlobalStateManager = WorldGuardPlugin.getDeclaredMethod("getGlobalStateManager");
+            Method enableGodMode = WorldGuardConfig.getDeclaredMethod("enableGodMode");
+            Method disableGodMode = WorldGuardConfig.getDeclaredMethod("disableGodMode");
+            
+            Object config = getGlobalStateManager.invoke(worldguard);
+            
+            this.worldguard_config = config;
+            this.worldguard_enableGodMode = enableGodMode;
+            this.worldguard_disableGodMode = disableGodMode;
+            
+            return true;
+        } catch (Throwable t) {
+            t.printStackTrace();
+            return false;
         }
     }
 

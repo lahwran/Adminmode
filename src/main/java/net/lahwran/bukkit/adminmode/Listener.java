@@ -38,7 +38,7 @@ public class Listener implements CommandExecutor
         boolean currentlyadmin = false;
 
         String newname;
-        if (playername.startsWith("\u00a74"))
+        if (playername.startsWith("\u00a7e"))
         {
             currentlyadmin=true;
             newname = playername.substring(2);
@@ -46,7 +46,7 @@ public class Listener implements CommandExecutor
         else
         {
             currentlyadmin=false;
-            newname = "\u00a74" + playername;
+            newname = "\u00a7e" + playername;
         }
         
 
